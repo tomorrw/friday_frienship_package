@@ -1,0 +1,40 @@
+{
+  "name": "tomorrow/friday-friends",
+  "description": "This light package, with no dependencies, gives Eloquent models the ability to manage friendships (with groups)",
+  "require": {
+    "php": ">=7.1"
+  },
+  "require-dev": {
+    "laravel/laravel": "5.*",
+    "phpunit/phpunit": "5.*",
+    "mockery/mockery": "1.0.x-dev",
+    "fzaninotto/faker": "~1.4",
+    "codeclimate/php-test-reporter": "^0.3.2",
+    "doctrine/dbal": "^2.5"
+  },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Ali Joumaa",
+      "email": "joumaaaliofficiel@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Tomorrow\\FridayFriendship\\": "src/",
+      "Database\\Factories\\": "database/factories/"
+    },
+    "classmap": [
+      "database/seeds",
+      "database/factories"
+    ]
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Tomorrow\\FridayFriendship\\FridayFriendshipProvider"
+      ]
+    }
+  },
+  "minimum-stability": "stable"
+}
