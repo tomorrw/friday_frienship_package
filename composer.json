@@ -1,5 +1,5 @@
 {
-  "name": "tomorrow/friday-friends",
+  "name": "tomorrow/friday_friendship",
   "description": "This light package, with no dependencies, gives Eloquent models the ability to manage friendships (with groups)",
   "require": {
     "php": ">=7.1"
