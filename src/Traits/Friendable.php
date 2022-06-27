@@ -33,11 +33,10 @@ trait Friendable
      */
     public function befriend(Model $recipient)
     {
-
-        if ( ! $this->canBefriend($recipient)) {
-            return false;
+        $canBeFriend = canBefriend($recipient);
+        if ($canBeFriend !== true){
+            return $canBeFriend;
         }
-
         $friendshipModelName = Interaction::getFriendshipModelName();
         $friendship = (new $friendshipModelName)->fillRecipient($recipient)->fill([
             'status' => Status::PENDING,
@@ -350,18 +349,17 @@ trait Friendable
         // he can send a friend request after unblocking
         if ($this->hasBlocked($recipient)) {
             $this->unblockFriend($recipient);
-
             return true;
         }
         //if the sender is the recipient
         if ($this == $recipient){
-            return false;
+            return "can't add self as a friend";
         }
         // if sender has a friendship with the recipient return false
         if ($friendship = $this->getFriendship($recipient)) {
             // if previous friendship was Denied then let the user send fr
             if ($friendship->status != Status::DENIED) {
-                return false;
+                return "a previous request is already sent";
             }
         }
 
