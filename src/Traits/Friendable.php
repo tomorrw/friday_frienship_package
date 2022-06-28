@@ -33,9 +33,12 @@ trait Friendable
      */
     public function befriend(Model $recipient)
     {
-        $canBeFriend = canBefriend($recipient);
+        $canBeFriend = $this->canBefriend($recipient);
         if ($canBeFriend !== true){
-            return $canBeFriend;
+            return response()->json([
+                'state' => false,
+                'message' => $canBeFriend,
+            ]);
         }
         $friendshipModelName = Interaction::getFriendshipModelName();
         $friendship = (new $friendshipModelName)->fillRecipient($recipient)->fill([
@@ -46,7 +49,10 @@ trait Friendable
 
         Event::dispatch('acq.friendships.sent', [$this, $recipient]);
 
-        return $friendship;
+        return response()->json([
+            'state' => true,
+            'message' => $friendship,
+        ]);
 
     }
 
@@ -352,7 +358,8 @@ trait Friendable
             return true;
         }
         //if the sender is the recipient
-        if ($this == $recipient){
+
+        if ($this->id == $recipient->id){
             return "can't add self as a friend";
         }
         // if sender has a friendship with the recipient return false
