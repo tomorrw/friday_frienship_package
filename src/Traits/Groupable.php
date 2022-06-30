@@ -30,10 +30,16 @@ trait Groupable
      */
     public function addToGroup($groupId)
     {
-        return $this->morphToMany(Group::class, config('FridayFriendship.tables.groupables'))->attach($groupId, [
+        if($this->isInGroup($groupId))
+        {
+            return response()->error("user already in group", 500);
+        }
+        $this->morphToMany(Group::class, config('FridayFriendship.tables.groupables'))->attach($groupId, [
                 'created_at' => now(),
                 'updated_at' => now()
         ]);
+
+        return response()->success($this->getAllMembers($groupId));
     }
 
     /**
@@ -44,6 +50,10 @@ trait Groupable
 
     public function removeFromGroup($groupId)
     {
+        if(! $this->isInGroup)
+        {
+            return response()->error("user not in group", 404);
+        }
         $this->morphToMany(Group::class, config('FridayFriendship.tables.groupables'))->detach($groupId);
         if($this->isOwner($groupId))
         {
@@ -60,9 +70,9 @@ trait Groupable
                 $group->owner_type = $newOwner->getMorphClass();
                 $group->save();
             }
-            return $newOwner;
+            return response()->success($newOwner);
         }
-        return true;
+        return response()->success("user removed from the group");
              
     }
     
@@ -79,7 +89,8 @@ trait Groupable
             $group->owner_id = $this->getKey();
             $group->owner_type = $this->getMorphClass();
             $group->save();
-            return $this->addToGroup($group->id);
+            $this->addToGroup($group->id);
+            return response()->success($group);
     }
 
     /**
@@ -87,23 +98,37 @@ trait Groupable
      *
      * @return true|error
      */
-    public function removeGroup($groupId)
+    public function deleteGroup($groupId)
     {
         if ($this->isOwner($groupId))
         {
-            return  Group::destroy($groupId);
+            return  response()->success(Group::destroy($groupId));
         }
         else {
-            return "this user is not the owner";
+            return response()->error("this user is not the owner");
         }
         
     }
 
     public function getAllMembers($groupId)
     {
-        // dd(config('FridayFriendship.groupable_model'));
+        
         $group = Group::findOrFail($groupId);
         return $group->groupables()->get();
+    }
+
+    public function isInGroup($groupId)
+    {
+        $members = $this->getAllMembers($groupId);
+        // return $members;
+        if($members->contains('id', $this->id))
+        {
+            return true;
+        }
+        else 
+        {
+            return false;
+        }
     }
 
     /**

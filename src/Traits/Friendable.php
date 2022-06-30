@@ -35,10 +35,7 @@ trait Friendable
     {
         $canBeFriend = $this->canBefriend($recipient);
         if ($canBeFriend !== true){
-            return response()->json([
-                'state' => false,
-                'message' => $canBeFriend,
-            ]);
+            return response()->error($canBeFriend, 500);
         }
         $friendshipModelName = Interaction::getFriendshipModelName();
         $friendship = (new $friendshipModelName)->fillRecipient($recipient)->fill([
@@ -49,10 +46,7 @@ trait Friendable
 
         Event::dispatch('acq.friendships.sent', [$this, $recipient]);
 
-        return response()->json([
-            'state' => true,
-            'message' => $friendship,
-        ]);
+        return response()->success($friendship);
 
     }
 
@@ -121,10 +115,16 @@ trait Friendable
     public function acceptFriendRequest(Model $recipient)
     {
         Event::dispatch('acq.friendships.accepted', [$this, $recipient]);
-
-        return $this->findFriendship($recipient)->whereRecipient($this)->update([
+        if($this->findFriendship($recipient)->whereRecipient($this)->whereStatus(Status::PENDING)->update([
             'status' => Status::ACCEPTED,
-        ]);
+        ]))
+        {
+            return response()->success("friendship request accepted");
+        }
+        else 
+        {
+            return response()->error("friendship request not found/already accepted");
+        }
     }
 
     /**
@@ -136,9 +136,16 @@ trait Friendable
     {
         Event::dispatch('acq.friendships.denied', [$this, $recipient]);
 
-        return $this->findFriendship($recipient)->whereRecipient($this)->update([
+        if($this->findFriendship($recipient)->whereRecipient($this)->whereStatus(Status::PENDING)->update([
             'status' => Status::DENIED,
-        ]);
+        ]))
+        {
+            return response()->success("friendship request denied");
+        }
+        else 
+        {
+            return response()->error("friendship request not found/already denied");
+        }
     }
 
     /**
@@ -148,12 +155,18 @@ trait Friendable
      */
     public function blockFriend(Model $recipient)
     {
-        // if there is a friendship between the two users and the sender is not blocked
-        // by the recipient user then delete the friendship
-        if ( ! $this->isBlockedBy($recipient)) {
-            $this->findFriendship($recipient)->delete();
+
+        if($recipient->isBlockedBy($this))
+        {
+            return response()->error("user already blocked", 500);
         }
 
+         // if there is a friendship between the two users and the sender is not blocked
+        // by the recipient user then delete the friendship
+        if ( ! $this->isBlockedBy($recipient))
+        {
+            $this->findFriendship($recipient)->delete();
+        }
         $friendshipModelName = Interaction::getFriendshipModelName();
         $friendship = (new $friendshipModelName)->fillRecipient($recipient)->fill([
             'status' => Status::BLOCKED,
@@ -172,8 +185,15 @@ trait Friendable
     public function unblockFriend(Model $recipient)
     {
         Event::dispatch('acq.friendships.unblocked', [$this, $recipient]);
-
-        return $this->findFriendship($recipient)->whereSender($this)->delete();
+        
+        if($this->findFriendship($recipient)->whereSender($this)->delete())
+        {
+            return response()->success("user unblocked");
+        }
+        else 
+        {
+            return response()->error("friendship request not found/already unblocked", 404);
+        }
     }
 
     /**
@@ -314,6 +334,29 @@ trait Friendable
         return $this->getMutualFriendsQueryBuilder($other)->count();
     }
 
+
+    /**
+     * This method will not return Friendship models
+     * It will return the 'friends' models. ex: App\User
+     *
+     * @param  int  $perPage  Number
+     *
+     * @param  array  $fields
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getFriendsOfFriend($friend)
+    {
+        if($user->isFriendWith($friend))
+        {
+            return response()->success($friend->getFriends());
+        }
+        else
+        {
+            return response()->error("this user is not a friend", 500);
+        }
+    }
+
     /**
      * This method will not return Friendship models
      * It will return the 'friends' models. ex: App\User
@@ -353,19 +396,27 @@ trait Friendable
     {
         // if user has Blocked the recipient and changed his mind
         // he can send a friend request after unblocking
-        if ($this->hasBlocked($recipient)) {
+        if ($this->hasBlocked($recipient)) 
+        {
             $this->unblockFriend($recipient);
             return true;
         }
         //if the sender is the recipient
-
-        if ($this->id == $recipient->id){
+        if ($this->id == $recipient->id)
+        {
             return "can't add self as a friend";
         }
+        //if the sender have blocked me
+        if($recipient->hasBlocked($this))
+        {
+            return "the recipient have blocked you";
+        }
         // if sender has a friendship with the recipient return false
-        if ($friendship = $this->getFriendship($recipient)) {
+        if ($friendship = $this->getFriendship($recipient)) 
+        {
             // if previous friendship was Denied then let the user send fr
-            if ($friendship->status != Status::DENIED) {
+            if ($friendship->status != Status::DENIED) 
+            {
                 return "a previous request is already sent";
             }
         }
