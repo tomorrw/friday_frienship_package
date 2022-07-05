@@ -207,62 +207,67 @@ trait Friendable
     }
 
     /**
-     * @param  int  $perPage  Number
-     * @param  array  $fields
-     * @param  string $type
-     *
      * @return \Illuminate\Database\Eloquent\Collection|Friendship[]
      */
-    public function getAllFriendships(int $perPage = 0, array $fields = ['*'], string $type = 'all')
+    public function getAllFriendships()
     {
-        return $this->getOrPaginate($this->findFriendships(null, $type), $perPage, $fields);
+        return $this->findFriendships()->get(["*"]);
     }
 
     /**
-     * @param  int  $perPage  Number
-     * @param  array  $fields
-     * @param  string $type
-     *
      * @return \Illuminate\Database\Eloquent\Collection|Friendship[]
      */
-    public function getPendingFriendships(int $perPage = 0, array $fields = ['*'], string $type = 'all')
+    public function getPendingFriendships()
     {
-        return $this->getOrPaginate($this->findFriendships(Status::PENDING, $type), $perPage, $fields);
+        return $this->findFriendships(Status::PENDING)->get(["*"]);
     }
 
     /**
-     * @param  int  $perPage  Number
-     * @param  array  $fields
-     * @param  string $type
-     *
      * @return \Illuminate\Database\Eloquent\Collection|Friendship[]
      */
-    public function getAcceptedFriendships(int $perPage = 0, array $fields = ['*'], string $type = 'all')
+    public function getAcceptedFriendships()
     {
-        return $this->getOrPaginate($this->findFriendships(Status::ACCEPTED, $type), $perPage, $fields);
+        return $this->findFriendships(Status::ACCEPTED)->get(["*"]);
     }
 
     /**
-     * @param  int  $perPage  Number
-     * @param  array  $fields
-     *
      * @return \Illuminate\Database\Eloquent\Collection|Friendship[]
      */
     public function getDeniedFriendships(int $perPage = 0, array $fields = ['*'])
     {
-        return $this->getOrPaginate($this->findFriendships(Status::DENIED), $perPage, $fields);
+        return $this->findFriendships(Status::DENIED)->get(["*"]);
     }
 
     /**
-     * @param  int  $perPage  Number
-     * @param  array  $fields
-     *
      * @return \Illuminate\Database\Eloquent\Collection|Friendship[]
      */
     public function getBlockedFriendships(int $perPage = 0, array $fields = ['*'])
     {
-        return $this->getOrPaginate($this->findFriendships(Status::BLOCKED), $perPage, $fields);
+        return $this->findFriendships(Status::BLOCKED)->get(["*"]);
     }
+
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection|Friendship[]
+     */
+    public function getFriendRequests()
+    {
+        $friendshipModelName = Interaction::getFriendshipModelName();
+        return $friendshipModelName::whereRecipient($this)->whereStatus(Status::PENDING)->get();
+    }
+
+
+
+    /**
+     * This method will not return Friendship models
+     * It will return the 'friends' models. ex: App\User
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getFriends()
+    {
+        return $this->getFriendsQueryBuilder()->get(['*']);
+    }
+
 
     /**
      * @param  Model  $recipient
@@ -285,63 +290,8 @@ trait Friendable
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection|Friendship[]
-     */
-    public function getFriendRequests()
-    {
-        $friendshipModelName = Interaction::getFriendshipModelName();
-        return $friendshipModelName::whereRecipient($this)->whereStatus(Status::PENDING)->get();
-    }
-
-    /**
      * This method will not return Friendship models
      * It will return the 'friends' models. ex: App\User
-     *
-     * @param  int  $perPage  Number
-     *
-     * @param  array  $fields
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getFriends($perPage = 0,array $fields = ['*'], bool $cursor = false)
-    {
-        return $this->getOrPaginate($this->getFriendsQueryBuilder(), $perPage, $fields, $cursor);
-    }
-
-    /**
-     * This method will not return Friendship models
-     * It will return the 'friends' models. ex: App\User
-     *
-     * @param  Model  $other
-     * @param  int  $perPage  Number
-     *
-     * @param  array  $fields
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getMutualFriends(Model $other, $perPage = 0, array $fields = ['*'])
-    {
-        return $this->getOrPaginate($this->getMutualFriendsQueryBuilder($other), $perPage, $fields);
-    }
-
-    /**
-     * Get the number of friends
-     *
-     * @return integer
-     */
-    public function getMutualFriendsCount($other)
-    {
-        return $this->getMutualFriendsQueryBuilder($other)->count();
-    }
-
-
-    /**
-     * This method will not return Friendship models
-     * It will return the 'friends' models. ex: App\User
-     *
-     * @param  int  $perPage  Number
-     *
-     * @param  array  $fields
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
@@ -356,23 +306,6 @@ trait Friendable
             return response()->error("this user is not a friend", 500);
         }
     }
-
-    /**
-     * This method will not return Friendship models
-     * It will return the 'friends' models. ex: App\User
-     *
-     * @param  int  $perPage  Number
-     *
-     * @param  array  $fields
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    public function getFriendsOfFriends($perPage = 0, array $fields = ['*'])
-    {
-        return $this->getOrPaginate($this->friendsOfFriendsQueryBuilder(), $perPage, $fields);
-    }
-
-
     /**
      * Get the number of friends
      *
@@ -441,7 +374,7 @@ trait Friendable
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    private function findFriendships($status = null, string $type = 'all')
+    private function findFriendships($status = null, $type = "all")
     {
         $friendshipModelName = Interaction::getFriendshipModelName();
         $query = $friendshipModelName::where(function ($query) use ($type) {
@@ -508,37 +441,6 @@ trait Friendable
     }
 
     /**
-     * Get the query builder for friendsOfFriends ('friend' model)
-     *
-     *
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    private function friendsOfFriendsQueryBuilder()
-    {
-        $friendships = $this->findFriendships(Status::ACCEPTED)->get(['sender_id', 'recipient_id']);
-        $recipients = $friendships->pluck('recipient_id')->all();
-        $senders = $friendships->pluck('sender_id')->all();
-
-        $friendIds = array_unique(array_merge($recipients, $senders));
-
-        $friendshipModelName = Interaction::getFriendshipModelName();
-        $fofs = $friendshipModelName::where('status', Status::ACCEPTED)
-                          ->where(function ($query) use ($friendIds) {
-                              $query->where(function ($q) use ($friendIds) {
-                                  $q->whereIn('sender_id', $friendIds);
-                              })->orWhere(function ($q) use ($friendIds) {
-                                  $q->whereIn('recipient_id', $friendIds);
-                              });
-                          })
-                          ->get(['sender_id', 'recipient_id']);
-
-        $fofIds = array_unique(
-            array_merge($fofs->pluck('sender_id')->all(), $fofs->pluck('recipient_id')->all())
-        );
-        return $this->whereIn('id', $fofIds)->whereNotIn('id', $friendIds);
-    }
-
-    /**
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
     public function friends()
@@ -546,17 +448,5 @@ trait Friendable
         $friendshipModelName = Interaction::getFriendshipModelName();
         return $this->morphMany($friendshipModelName, 'sender');
     }
-
-    protected function getOrPaginate($builder, $perPage, array $fields = ['*'], bool $cursor = false)
-    {
-        if ($perPage == 0) {
-            return $builder->get($fields);
-        }
-
-        if ($cursor) {
-            return $builder->cursorPaginate($perPage, $fields);
-        }
-
-        return $builder->paginate($perPage, $fields);
-    }
+    
 }
