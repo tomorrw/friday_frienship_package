@@ -84,9 +84,9 @@ trait Groupable
             $members = $info->members;
             $group->save();
             foreach ($members as $member) {
-               $user = UserModel::findOrFail($member['id']);
-               $user->addToGroup($group->id);
-            }    
+                $user = UserModel::findOrFail($member);
+                $user->addToGroup($group->id);
+             }    
             $this->addToGroup($group->id);
             $group->save();
             return $group;
