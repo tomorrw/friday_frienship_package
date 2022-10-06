@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Event;
 use Tomorrow\FridayFriendship\Models\Group;
 use Illuminate\Support\Facades\Log;
+use App\Models\Users\User as UserModel;
+
 
 trait Groupable
 {   
@@ -30,16 +32,10 @@ trait Groupable
      */
     public function addToGroup($groupId)
     {
-        if($this->isInGroup($groupId))
-        {
-            return response()->error("user already in group", 500);
-        }
-        $this->morphToMany(Group::class, config('FridayFriendship.tables.groupables'))->attach($groupId, [
+        return $this->morphToMany(Group::class, config('FridayFriendship.tables.groupables'))->attach($groupId, [
                 'created_at' => now(),
                 'updated_at' => now()
         ]);
-
-        return response()->success($this->getAllMembers($groupId));
     }
 
     /**
@@ -50,10 +46,6 @@ trait Groupable
 
     public function removeFromGroup($groupId)
     {
-        if(! $this->isInGroup)
-        {
-            return response()->error("user not in group", 404);
-        }
         $this->morphToMany(Group::class, config('FridayFriendship.tables.groupables'))->detach($groupId);
         if($this->isOwner($groupId))
         {
@@ -70,9 +62,9 @@ trait Groupable
                 $group->owner_type = $newOwner->getMorphClass();
                 $group->save();
             }
-            return response()->success($newOwner);
+            return $newOwner;
         }
-        return response()->success("user removed from the group");
+        return true;
              
     }
     
@@ -82,15 +74,22 @@ trait Groupable
      * @return true|error
      */
     public function createGroup($info)
-    {
+    {   
             $group = new Group;
             $group->name = $info->name;
-            $group->privacy = $info->privacy;
+            // $group->privacy = $info->privacy;
+            $group->description = $info->description;
             $group->owner_id = $this->getKey();
             $group->owner_type = $this->getMorphClass();
+            $members = $info->members;
             $group->save();
+            foreach ($members as $member) {
+               $user = UserModel::findOrFail($member['id']);
+               $user->addToGroup($group->id);
+            }    
             $this->addToGroup($group->id);
-            return response()->success($group);
+            $group->save();
+            return $group;
     }
 
     /**
@@ -98,37 +97,22 @@ trait Groupable
      *
      * @return true|error
      */
-    public function deleteGroup($groupId)
+    public function removeGroup($groupId)
     {
         if ($this->isOwner($groupId))
         {
-            return  response()->success(Group::destroy($groupId));
+            return  Group::destroy($groupId);
         }
         else {
-            return response()->error("this user is not the owner");
+            return "this user is not the owner";
         }
         
     }
 
     public function getAllMembers($groupId)
     {
-        
         $group = Group::findOrFail($groupId);
         return $group->groupables()->get();
-    }
-
-    public function isInGroup($groupId)
-    {
-        $members = $this->getAllMembers($groupId);
-        // return $members;
-        if($members->contains('id', $this->id))
-        {
-            return true;
-        }
-        else 
-        {
-            return false;
-        }
     }
 
     /**
@@ -146,6 +130,12 @@ trait Groupable
         else {
             return false;
         }
+    }
+
+    public function getAllGroups() 
+    {
+        $groups = $this->morphToMany(Group::class, config('FridayFriendship.tables.groupables'))->get();
+        return $groups;
     }
 }
 

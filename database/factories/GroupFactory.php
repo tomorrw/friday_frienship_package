@@ -4,7 +4,7 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 use Tomorrow\FridayFriendship\Models\Group;
-use App\Models\User;
+use App\Models\Users\User;
 
 class GroupFactory extends Factory
 {

@@ -35,7 +35,7 @@ trait Friendable
     {
         $canBeFriend = $this->canBefriend($recipient);
         if ($canBeFriend !== true){
-            return response()->error($canBeFriend, 500);
+            return $canBeFriend;
         }
         $friendshipModelName = Interaction::getFriendshipModelName();
         $friendship = (new $friendshipModelName)->fillRecipient($recipient)->fill([
@@ -49,6 +49,23 @@ trait Friendable
         return response()->success($friendship);
 
     }
+
+    public function becomeFriend(Model $recipient)
+    {
+       
+        $friendshipModelName = Interaction::getFriendshipModelName();
+        $friendship = (new $friendshipModelName)->fillRecipient($recipient)->fill([
+            'status' => Status::ACCEPTED,
+        ]);
+
+        $this->friends()->save($friendship);
+
+        Event::dispatch('acq.friendships.sent', [$this, $recipient]);
+
+        return response()->success($friendship);
+
+    }
+
 
       /**
      * @param  Model  $recipient
@@ -250,13 +267,20 @@ trait Friendable
     /**
      * @return \Illuminate\Database\Eloquent\Collection|Friendship[]
      */
-    public function getFriendRequests()
+    public function getPendingReceivedFriendships()
     {
         $friendshipModelName = Interaction::getFriendshipModelName();
         return $friendshipModelName::whereRecipient($this)->whereStatus(Status::PENDING)->get();
     }
 
-
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection|Friendship[]
+     */
+    public function getPendingSentFriendships()
+    {
+        $friendshipModelName = Interaction::getFriendshipModelName();
+        return $friendshipModelName::whereSender($this)->whereStatus(Status::PENDING)->get();
+    }
 
     /**
      * This method will not return Friendship models
@@ -297,7 +321,7 @@ trait Friendable
      */
     public function getFriendsOfFriend($friend)
     {
-        if($user->isFriendWith($friend))
+        if($this->isFriendWith($friend))
         {
             return response()->success($friend->getFriends());
         }
@@ -411,7 +435,7 @@ trait Friendable
         $friendships = $this->findFriendships(Status::ACCEPTED)->get(['sender_id', 'recipient_id']);
         $recipients = $friendships->pluck('recipient_id')->all();
         $senders = $friendships->pluck('sender_id')->all();
-
+        
         return $this->where('id', '!=', $this->getKey())->whereIn('id', array_merge($recipients, $senders));
     }
 

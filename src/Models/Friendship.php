@@ -43,14 +43,6 @@ class Friendship extends Model
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\hasMany
-     */
-    public function groups()
-    {
-        return $this->hasMany(FriendFriendshipGroups::class, 'friendship_id');
-    }
-
-    /**
      * @param  Model  $recipient
      *
      * @return $this

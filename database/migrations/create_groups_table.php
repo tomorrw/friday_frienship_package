@@ -16,6 +16,7 @@ class CreateGroupsTable extends Migration
         Schema::create(config('FridayFriendship.tables.groups'), function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('description');
             $table->morphs('owner');
             $table->enum('privacy', ['public', 'private']);
             $table->timestamps();
