@@ -24,6 +24,16 @@ trait Groupable
         });
     }
 
+        /**
+     * @param  integer  $groupId
+     *
+     * @return Group
+     */
+    public function getGroup($groupId)
+    {
+        return  Group::findOrFail($groupId);
+    }
+
 
     /**
      * @param  integer  $groupId
@@ -75,21 +85,78 @@ trait Groupable
      */
     public function createGroup($info)
     {   
-            $group = new Group;
-            $group->name = $info->name;
-            // $group->privacy = $info->privacy;
-            $group->description = $info->description;
-            $group->owner_id = $this->getKey();
-            $group->owner_type = $this->getMorphClass();
-            $members = $info->members;
-            $group->save();
-            foreach ($members as $member) {
-                $user = UserModel::findOrFail($member);
+        $group = new Group;
+        $group->name = $info->name;
+        // $group->privacy = $info->privacy;
+        $group->description = $info->description;
+        $group->owner_id = $this->getKey();
+        $group->owner_type = $this->getMorphClass();
+        $group->profile_image = $info->profile_image;
+        $group->header_image = $info->header_image;
+        $members = $info->members;
+        $group->save();
+        foreach ($members as $member) {
+            $user = UserModel::findOrFail($member);
+            $user->addToGroup($group->id);
+        }    
+        $this->addToGroup($group->id);
+        $group->save();
+        return $group;
+    }
+
+    public function editGroup($info)
+    {
+        $group = Group::findOrFail($info->groupId);
+        $group->name = $info->name;
+        $group->description = $info->description;
+        $members = $info->members;
+        $group->profile_image = $info->profileImage;
+        $group->save();
+        foreach ($members as $member) {
+            $user = UserModel::findOrFail($member);
+            if(!$user->isInGroup($group->id))
+            {
                 $user->addToGroup($group->id);
-             }    
-            $this->addToGroup($group->id);
+            }
+        }    
+        $group->save();
+        return $group;
+    }
+
+    public function editGroupProfileImage($url, $groupId)
+    {
+        $group = Group::findOrFail($groupId);
+        $group->profile_image = $url;
+        $group->save();
+        return $group;
+    }
+
+    public function editGroupHeaderImage($url, $groupId)
+    {
+        $group = Group::findOrFail($groupId);
+        $group->header_image = $url;
+        $group->save();
+        return $group;
+    }
+
+    public function deleteGroupProfileImage($groupId)
+    {
+        $group = Group::findOrFail($groupId);
+        {
+            $group->profile_image = null;
             $group->save();
             return $group;
+        }
+    }
+
+    public function deleteGroupHeaderImage($groupId)
+    {
+        $group = Group::findOrFail($groupId);
+        {
+            $group->header_image = null;
+            $group->save();
+            return $group;
+        }
     }
 
     /**
@@ -114,6 +181,19 @@ trait Groupable
         $group = Group::findOrFail($groupId);
         return $group->groupables()->get();
     }
+
+
+    /**
+     * @param  integer  $userId
+     * 
+     * @return true|false
+     */
+    public function isInGroup($groupId)
+    {
+        $members = $this->getAllMembers($groupId);
+        return $members->contains('id', $this->id);
+    }
+
 
     /**
      * @param int $groupId
