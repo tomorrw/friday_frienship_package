@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 use DB;
 use Schema;
-use App\Models\User;
+use App\Models\Users\User;
 use Illuminate\Database\Seeder;
 use Tomorrow\FridayFriendship\Models\Group;
 use Illuminate\Foundation\Testing\RefreshDatabase;
