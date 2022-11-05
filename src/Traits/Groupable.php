@@ -87,7 +87,7 @@ trait Groupable
     {   
         $group = new Group;
         $group->name = $info->name;
-        // $group->privacy = $info->privacy;
+        $policies = $info->privacy;
         $group->description = $info->description;
         $group->owner_id = $this->getKey();
         $group->owner_type = $this->getMorphClass();
@@ -101,26 +101,39 @@ trait Groupable
         }    
         $this->addToGroup($group->id);
         $group->save();
+        foreach( array_keys($policies) as $policy)
+        {   
+            if($policies[$policy])
+            {
+                $group->privacies()->sync($policy, false);
+            }
+        }
         return $group;
     }
 
     public function editGroup($info)
     {
         $group = Group::findOrFail($info->groupId);
-        $group->name = $info->name;
-        $group->description = $info->description;
-        $members = $info->members;
-        $group->profile_image = $info->profileImage;
-        $group->save();
-        foreach ($members as $member) {
-            $user = UserModel::findOrFail($member);
-            if(!$user->isInGroup($group->id))
+        if ($this->isOwner($group->id))
+        {
+
+            $group->name = $info->name;
+            $group->description = $info->description;
+            $members = $info->members;
+            $group->profile_image = $info->profileImage;
+            $group->save();
+            foreach ($members as $member)
             {
-                $user->addToGroup($group->id);
-            }
-        }    
-        $group->save();
-        return $group;
+                $user = UserModel::findOrFail($member);
+                if(!$user->isInGroup($group->id))
+                {
+                    $user->addToGroup($group->id);
+                }
+            }    
+            $group->save();
+            return $group;
+        }
+        throw "Only the group owner can change the info of the group";
     }
 
     public function editGroupProfileImage($url, $groupId)
