@@ -25,7 +25,7 @@
       "Database\\Factories\\": "database/factories/"
     },
     "classmap": [
-      "database/seeds",
+      "database/seeders",
       "database/factories"
     ]
   },
