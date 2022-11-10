@@ -147,7 +147,7 @@ trait Groupable
 
     public function editGroupProfileImage($url, $groupId)
     {
-        if ($this->isOwner($group->id))
+        if ($this->isOwner($groupId))
         {
         $group = Group::findOrFail($groupId);
         $group->profile_image = $url;
@@ -159,7 +159,7 @@ trait Groupable
 
     public function editGroupHeaderImage($url, $groupId)
     {
-        if ($this->isOwner($group->id))
+        if ($this->isOwner($groupId))
         {
             $group = Group::findOrFail($groupId);
             $group->header_image = $url;
@@ -171,7 +171,7 @@ trait Groupable
 
     public function deleteGroupProfileImage($groupId)
     {
-        if ($this->isOwner($group->id))
+        if ($this->isOwner($groupId))
         {
             $group = Group::findOrFail($groupId);
             {
@@ -186,7 +186,7 @@ trait Groupable
 
     public function deleteGroupHeaderImage($groupId)
     {
-        if ($this->isOwner($group->id))
+        if ($this->isOwner($groupId))
         {
             $group = Group::findOrFail($groupId);
             {
