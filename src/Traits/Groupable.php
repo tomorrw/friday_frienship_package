@@ -121,6 +121,7 @@ trait Groupable
             $group->description = $info->description;
             $members = $info->members;
             $group->profile_image = $info->profileImage;
+            $policies = $info->privacy;
             $group->save();
             foreach ($members as $member)
             {
@@ -128,6 +129,14 @@ trait Groupable
                 if(!$user->isInGroup($group->id))
                 {
                     $user->addToGroup($group->id);
+                }
+            }
+            $group->privacies()->detach();
+            foreach(array_keys($policies) as $policy)
+            {   
+                if($policies[$policy])
+                {
+                    $group->privacies()->sync($policy, false);
                 }
             }    
             $group->save();
@@ -138,37 +147,54 @@ trait Groupable
 
     public function editGroupProfileImage($url, $groupId)
     {
+        if ($this->isOwner($group->id))
+        {
         $group = Group::findOrFail($groupId);
         $group->profile_image = $url;
         $group->save();
         return $group;
+        }
+        throw "Only the group owner can change the info of the group";
     }
 
     public function editGroupHeaderImage($url, $groupId)
     {
-        $group = Group::findOrFail($groupId);
-        $group->header_image = $url;
-        $group->save();
-        return $group;
+        if ($this->isOwner($group->id))
+        {
+            $group = Group::findOrFail($groupId);
+            $group->header_image = $url;
+            $group->save();
+            return $group;
+        }
+        throw "Only the group owner can change the info of the group";
     }
 
     public function deleteGroupProfileImage($groupId)
     {
-        $group = Group::findOrFail($groupId);
+        if ($this->isOwner($group->id))
         {
-            $group->profile_image = null;
-            $group->save();
-            return $group;
+            $group = Group::findOrFail($groupId);
+            {
+                $group->profile_image = null;
+                $group->save();
+                return $group;
+            }
         }
+        throw "Only the group owner can change the info of the group";
     }
+    
 
     public function deleteGroupHeaderImage($groupId)
     {
-        $group = Group::findOrFail($groupId);
+        if ($this->isOwner($group->id))
         {
-            $group->header_image = null;
-            $group->save();
-            return $group;
+            $group = Group::findOrFail($groupId);
+            {
+                $group->header_image = null;
+                $group->save();
+                return $group;
+        }
+        throw "Only the group owner can change the info of the group";
         }
     }
 
