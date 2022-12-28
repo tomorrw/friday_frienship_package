@@ -398,7 +398,7 @@ trait Friendable
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    private function findFriendships($status = null, $type = "all")
+    public function findFriendships($status = null, $type = "all")
     {
         $friendshipModelName = Interaction::getFriendshipModelName();
         $query = $friendshipModelName::where(function ($query) use ($type) {
