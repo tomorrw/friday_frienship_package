@@ -292,7 +292,7 @@ trait Friendable
         return $this->getFriendsQueryBuilder()->get(['*']);
     }
 
-
+    
     /**
      * @param  Model  $recipient
      *
@@ -467,10 +467,10 @@ trait Friendable
     /**
      * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
-    public function friends()
+    public function friends($direction = 'sender')
     {
         $friendshipModelName = Interaction::getFriendshipModelName();
-        return $this->morphMany($friendshipModelName, 'sender');
+        return $this->morphMany($friendshipModelName, $direction);
     }
     
 }
