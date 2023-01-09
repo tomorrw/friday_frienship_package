@@ -31,7 +31,7 @@ trait Groupable
      */
     public function getGroup($groupId)
     {
-        return  Group::findOrFail($groupId);
+        return  Group::with("privacies")->findOrFail($groupId);
     }
 
 
@@ -108,12 +108,12 @@ trait Groupable
                 $group->privacies()->sync($policy, false);
             }
         }
-        return $group;
+        return $group->load("privacies");
     }
 
     public function editGroup($info)
     {
-        $group = Group::findOrFail($info->groupId);
+        $group = Group::with("privacies")->findOrFail($info->groupId);
         if ($this->isOwner($group->id))
         {
 
