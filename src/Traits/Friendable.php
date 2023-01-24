@@ -220,7 +220,7 @@ trait Friendable
      */
     public function getFriendship(Model $recipient)
     {
-        return $this->findFriendship($recipient)->first();
+        return $this->findFriendship($recipient)->latest()->first();
     }
 
     /**
