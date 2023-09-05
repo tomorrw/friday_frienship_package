@@ -57,25 +57,23 @@ trait Groupable
     public function removeFromGroup($groupId)
     {
         $this->morphToMany(Group::class, config('FridayFriendship.tables.groupables'))->detach($groupId);
-        if($this->isOwner($groupId))
-        {
-            $members = $this->getAllMembers($groupId);
-            $newOwner = $members[0];
-            foreach ($members as $member) 
-            {
-                if ($newOwner->pivot->created_at > $member->pivot->created_at)
-                {
-                    $newOwner = $member;
-                }
-                $group = Group::findOrFail($groupId);
-                $group->owner_id = $newOwner->getKey();
-                $group->owner_type = $newOwner->getMorphClass();
-                $group->save();
-            }
-            return $newOwner;
-        }
-        return true;
-             
+
+        if (!$this->isOwner($groupId)) return;
+
+        $members = $this->getAllMembers($groupId);
+
+        $newOwner = $members->where('pivot.created_at', $members->min(function ($member) {
+            return $member->pivot->created_at;
+        }))->first();
+
+        if (!$newOwner) return;
+
+        $group = Group::findOrFail($groupId);
+        $group->owner_id = $newOwner->getKey();
+        $group->owner_type = $newOwner->getMorphClass();
+        $group->save();
+
+        return $newOwner;
     }
     
     /**
